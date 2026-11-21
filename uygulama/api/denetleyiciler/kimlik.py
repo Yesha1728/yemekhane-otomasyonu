@@ -4,12 +4,12 @@ from ..veri import kullanici_repo
 from ..veri.hatalar import IsKuraliHatasi, YetkiHatasi
 
 
-@uc_nokta("GET")
+@uc_nokta("GET", giris=False)
 def kok(istek):
     return yanit({"uygulama": "Yemekhane Otomasyonu API", "durum": "calisiyor"})
 
 
-@uc_nokta("POST")
+@uc_nokta("POST", giris=False)
 def giris(istek):
     veri = govde(istek)
     eposta = str(veri.get("eposta", "")).strip().lower()
@@ -27,3 +27,14 @@ def giris(istek):
     kullanici = {k: kayit[k] for k in ("id", "ad", "soyad", "eposta", "rol")}
     jeton = oturum.olustur(kullanici)
     return yanit({"jeton": jeton, "kullanici": kullanici})
+
+
+@uc_nokta("POST")
+def cikis(istek):
+    oturum.sil(kimlik.jeton_oku(istek))
+    return yanit({"tamam": True})
+
+
+@uc_nokta("GET")
+def ben(istek):
+    return yanit({"kullanici": istek.kullanici})

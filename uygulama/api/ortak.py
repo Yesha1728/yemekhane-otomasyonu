@@ -7,6 +7,7 @@ from functools import wraps
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 
+from . import kimlik
 from .veri.hatalar import BulunamadiHatasi, IsKuraliHatasi, YetkiHatasi
 
 gunluk = logging.getLogger("yemekhane.api")
@@ -33,7 +34,14 @@ def hata_yaniti(mesaj, durum):
     return yanit({"hata": mesaj}, durum)
 
 
-def uc_nokta(metodlar):
+def uc_nokta(metodlar, giris=True, roller=None):
+    """
+    Her denetleyici fonksiyonunu saran "ceket":
+      1) HTTP yöntemini denetler,
+      2) giris=True ise oturumu ve (verildiyse) rolü denetler; kullanıcı istek.kullanici içine konur,
+      3) fırlatılan hataları JSON yanıtına çevirir:
+         BulunamadiHatasi 404, YetkiHatasi 401, IsKuraliHatasi 400, diğerleri 500.
+    """
     if isinstance(metodlar, str):
         metodlar = (metodlar,)
 
@@ -42,6 +50,13 @@ def uc_nokta(metodlar):
         def sarili(istek, *args, **kwargs):
             if istek.method not in metodlar:
                 return hata_yaniti("Bu yol için izin verilen yöntem: " + ", ".join(metodlar), 405)
+            if giris:
+                kullanici = kimlik.istekten_kullanici(istek)
+                if kullanici is None:
+                    return hata_yaniti("Oturum açmanız gerekiyor.", 401)
+                if roller and kullanici["rol"] not in roller:
+                    return hata_yaniti("Bu işlem için yetkiniz yok.", 403)
+                istek.kullanici = kullanici
             try:
                 return islev(istek, *args, **kwargs)
             except BulunamadiHatasi as h:
@@ -55,6 +70,7 @@ def uc_nokta(metodlar):
                 return hata_yaniti("Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.", 500)
         return sarili
     return sarmalayici
+
 
 def govde(istek):
     """JSON gövdesini sözlük olarak okur."""
