@@ -30,3 +30,8 @@ def pasiflik_nedeni(suresi_doldu, bos_yer, rezervasyon_durumu):
     if bos_yer <= 0:
         return "Dolu"
     return None
+
+
+def iptal_edilebilir(durum, suresi_doldu):
+    """Yalnızca aktif ve son saati geçmemiş rezervasyon iptal edilebilir."""
+    return durum == "aktif" and not suresi_doldu

@@ -12,4 +12,6 @@ urlpatterns = [
     path("menu/gunluk", menu.gunluk),
     path("menu/haftalik", menu.haftalik),
     path("rezervasyon", rezervasyon.yap),
+    path("rezervasyon/<int:rezervasyon_id>/iptal", rezervasyon.iptal),
+    path("rezervasyonlarim", rezervasyon.listele),
 ]

@@ -1,4 +1,5 @@
-from ..ortak import govde, tamsayi, uc_nokta, yanit
+from .. import is_kurallari
+from ..ortak import govde, taze_mi, tamsayi, uc_nokta, yanit
 from ..veri import kullanici_repo, rezervasyon_repo
 
 
@@ -14,3 +15,22 @@ def yap(istek):
         "ucret": sonuc["ucret"],
         "bakiye": bakiye,
     }, 201)
+
+
+@uc_nokta("POST")
+def iptal(istek, rezervasyon_id):
+    sonuc = rezervasyon_repo.iptal(istek.kullanici["id"], rezervasyon_id)  # sp_rezervasyon_iptal (kaynak)
+    bakiye = kullanici_repo.bakiye_getir(istek.kullanici["id"], taze=True)
+    return yanit({
+        "rezervasyon_id": sonuc["rezervasyon_id"],
+        "iade": sonuc["iade"],
+        "bakiye": bakiye,
+    })
+
+
+@uc_nokta("GET")
+def listele(istek):
+    satirlar = rezervasyon_repo.listele(istek.kullanici["id"], taze_mi(istek))
+    for s in satirlar:
+        s["iptal_edilebilir"] = is_kurallari.iptal_edilebilir(s["durum"], s["suresi_doldu"])
+    return yanit({"rezervasyonlar": satirlar})
