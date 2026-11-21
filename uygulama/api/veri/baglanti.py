@@ -4,6 +4,8 @@ from contextlib import contextmanager
 import pymysql
 from pymysql.cursors import DictCursor
 
+from .hatalar import IsKuraliHatasi
+
 YAZMA_HOST = os.environ.get("DB_YAZMA_HOST", "mysql-primary")
 OKUMA_HOST = os.environ.get("DB_OKUMA_HOST", "mysql-replica")
 
@@ -52,3 +54,26 @@ def tek_satir(baglanti, sql, parametreler=()):
     with baglanti.cursor() as imlec:
         imlec.execute(sql, parametreler)
         return imlec.fetchone()
+
+
+def yordam_cagir(baglanti, ad, *parametreler):
+    """
+    Stored procedure çağırır ve dönen tek satırı verir.
+
+    Yordam SIGNAL SQLSTATE '45000' ile hata verirse MySQL hata kodu 1644'tür; Türkçe mesaj
+    değiştirilmeden IsKuraliHatasi olarak yukarı iletilir. Diğer hatalar olduğu gibi yükseltilir.
+    """
+    yer_tutucular = ", ".join(["%s"] * len(parametreler))
+    try:
+        with baglanti.cursor() as imlec:
+            # "ad" kodun içindeki sabit bir yordam adıdır, kullanıcı girdisi değildir.
+            imlec.execute(f"CALL {ad}({yer_tutucular})", parametreler)
+            satir = imlec.fetchone()
+            while imlec.nextset():      # CALL'un sondaki "OK" sonucunu tüket
+                pass
+            return satir
+    except pymysql.MySQLError as hata:
+        kod = hata.args[0] if hata.args else None
+        if kod == 1644:
+            raise IsKuraliHatasi(hata.args[1]) from None
+        raise

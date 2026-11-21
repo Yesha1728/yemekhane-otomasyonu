@@ -73,3 +73,31 @@ def menu_doluluk(menu_id, taze=False):
     if satir:
         satir["suresi_doldu"] = bool(satir["suresi_doldu"])
     return satir
+
+def haftalik(yemekhane_id, baslangic, kullanici_id, taze=False):
+    """Başlangıç gününden itibaren 7 günün menüleri; boş yer ve kullanıcının rezervasyon durumuyla."""
+    with baglanti.okuma_baglantisi(taze) as b:
+        satirlar = baglanti.sorgula(
+            b,
+            """SELECT d.menu_id, d.tarih, d.ogun_id, d.ogun,
+                      d.kapasite, d.rezerve, d.bos_yer, d.rezervasyon_son,
+                      (NOW() >= d.rezervasyon_son) AS suresi_doldu,
+                      m.ogrenci_fiyati, m.personel_fiyati,
+                      r.id AS rezervasyon_id, r.durum AS rezervasyon_durumu,
+                      (SELECT GROUP_CONCAT(y.ad ORDER BY k.sira, y.ad SEPARATOR ', ')
+                         FROM menu_yemekleri my
+                         JOIN yemekler y           ON y.id = my.yemek_id
+                         JOIN yemek_kategorileri k ON k.id = y.kategori_id
+                        WHERE my.menu_id = d.menu_id) AS yemekler
+                 FROM v_menu_doluluk d
+                 JOIN menuler m ON m.id = d.menu_id
+                 LEFT JOIN rezervasyonlar r
+                        ON r.menu_id = d.menu_id AND r.kullanici_id = %s
+                WHERE d.yemekhane_id = %s
+                  AND d.tarih BETWEEN %s AND DATE_ADD(%s, INTERVAL 6 DAY)
+                ORDER BY d.tarih, d.ogun_id""",
+            (kullanici_id, yemekhane_id, baslangic, baslangic),
+        )
+    for s in satirlar:
+        s["suresi_doldu"] = bool(s["suresi_doldu"])
+    return satirlar
