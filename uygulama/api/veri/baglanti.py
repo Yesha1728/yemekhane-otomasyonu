@@ -33,8 +33,9 @@ def yazma_baglantisi():
 
 
 @contextmanager
-def okuma_baglantisi():
-    baglanti = _bagla(OKUMA_HOST)
+def okuma_baglantisi(taze=False):
+    """Replikaya bağlantı. taze=True ise (yazmadan hemen sonra okuma) kaynağa bağlanır."""
+    baglanti = _bagla(YAZMA_HOST if taze else OKUMA_HOST)
     try:
         yield baglanti
     finally:

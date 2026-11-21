@@ -81,3 +81,32 @@ def govde(istek):
     if not isinstance(veri, dict):
         raise IsKuraliHatasi("İstek gövdesi bir JSON nesnesi olmalı.")
     return veri
+
+def taze_mi(istek):
+    """?taze=1 verilirse okuma kaynaktan yapılır (kullanıcı az önce yazma yaptıysa)."""
+    return istek.GET.get("taze") == "1"
+
+def tamsayi(deger, ad, varsayilan=None):
+    """Girdiyi tam sayıya çevirir. Boşsa varsayılanı verir (varsayılan yoksa hata)."""
+    if deger is None or deger == "":
+        if varsayilan is None:
+            raise IsKuraliHatasi(f"{ad} gerekli.")
+        return varsayilan
+    if isinstance(deger, bool):
+        raise IsKuraliHatasi(f"{ad} sayı olmalı.")
+    try:
+        return int(deger)
+    except (TypeError, ValueError):
+        raise IsKuraliHatasi(f"{ad} sayı olmalı.") from None
+
+
+def tarih(deger, ad, varsayilan=None):
+    """Girdiyi YYYY-AA-GG tarihine çevirir. Boşsa varsayılanı verir (varsayılan yoksa hata)."""
+    if deger is None or deger == "":
+        if varsayilan is None:
+            raise IsKuraliHatasi(f"{ad} gerekli.")
+        return varsayilan
+    try:
+        return datetime.date.fromisoformat(str(deger))
+    except ValueError:
+        raise IsKuraliHatasi(f"{ad} YYYY-AA-GG biçiminde olmalı.") from None
