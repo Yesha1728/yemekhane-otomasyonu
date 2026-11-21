@@ -1,7 +1,7 @@
-from django.http import JsonResponse
-
+from ..ortak import uc_nokta, yanit
 from ..veri import sunucu_repo
 
 
+@uc_nokta("GET")
 def bilgi(istek):
-    return JsonResponse(sunucu_repo.bilgi())
+    return yanit(sunucu_repo.bilgi())
