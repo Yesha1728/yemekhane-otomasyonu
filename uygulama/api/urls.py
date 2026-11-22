@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .denetleyiciler import bakiye, kimlik, menu, rezervasyon, sunucu
+from .denetleyiciler import bakiye, degerlendirme, kimlik, menu, rezervasyon, sunucu
 
 urlpatterns = [
     path("", kimlik.kok),
@@ -16,4 +16,6 @@ urlpatterns = [
     path("rezervasyonlarim", rezervasyon.listele),
     path("bakiye", bakiye.goster),
     path("bakiye/yukle", bakiye.yukle),
+    path("degerlendirme", degerlendirme.liste),
+    path("degerlendirme/ekle", degerlendirme.ekle),
 ]
