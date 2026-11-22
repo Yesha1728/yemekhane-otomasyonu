@@ -13,6 +13,12 @@ def iptal(kullanici_id, rezervasyon_id):
         return baglanti.yordam_cagir(b, "sp_rezervasyon_iptal", kullanici_id, rezervasyon_id)
 
 
+def turnike_gecis(kullanici_id, yemekhane_id, zaman):
+    """sp_turnike_gecis · yazma (kaynak). zaman None ise şu an. Döner: rezervasyon_id, menu_id, ogun"""
+    with baglanti.yazma_baglantisi() as b:
+        return baglanti.yordam_cagir(b, "sp_turnike_gecis", kullanici_id, yemekhane_id, zaman)
+
+
 def listele(kullanici_id, taze=False):
     """Kullanıcının rezervasyonları (en yeni önce). Listeleme: replika."""
     with baglanti.okuma_baglantisi(taze) as b:

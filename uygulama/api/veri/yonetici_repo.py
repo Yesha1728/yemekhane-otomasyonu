@@ -1,4 +1,7 @@
+import pymysql
+
 from . import baglanti
+from .hatalar import BulunamadiHatasi, IsKuraliHatasi
 
 
 def menu_listesi(baslangic, bitis, yemekhane_id=None, taze=False):
@@ -49,4 +52,76 @@ def duzenleme_detayi(menu_id):
         yemekler = baglanti.sorgula(b, "SELECT yemek_id FROM menu_yemekleri WHERE menu_id = %s", (menu_id,))
     menu["tarih"] = menu["tarih"].isoformat()
     menu["yemek_idleri"] = [y["yemek_id"] for y in yemekler]
+    return menu
+
+
+def menu_olustur(yemekhane_id, tarih, ogun_id, ogrenci_fiyati, personel_fiyati, yemek_idleri):
+    """Yeni menü + yemekleri tek transaction'da, kaynağa yazılır. Döner: menu_id"""
+    with baglanti.yazma_baglantisi() as b:
+        b.begin()
+        try:
+            with b.cursor() as imlec:
+                imlec.execute(
+                    """INSERT INTO menuler (yemekhane_id, tarih, ogun_id, ogrenci_fiyati, personel_fiyati)
+                       VALUES (%s, %s, %s, %s, %s)""",
+                    (yemekhane_id, tarih, ogun_id, ogrenci_fiyati, personel_fiyati),
+                )
+                menu_id = imlec.lastrowid
+                imlec.executemany(
+                    "INSERT INTO menu_yemekleri (menu_id, yemek_id) VALUES (%s, %s)",
+                    [(menu_id, y) for y in yemek_idleri],
+                )
+            b.commit()
+            return menu_id
+        except pymysql.err.IntegrityError as hata:
+            b.rollback()
+            if hata.args[0] == 1062:      # uq_menu: yemekhane + tarih + öğün başına tek menü
+                raise IsKuraliHatasi("Bu yemekhane, tarih ve öğün için zaten bir menü var.") from None
+            if hata.args[0] == 1452:      # yabancı anahtar
+                raise IsKuraliHatasi("Seçilen yemekhane, öğün ya da yemek geçerli değil.") from None
+            raise
+        except Exception:
+            b.rollback()
+            raise
+
+
+def menu_guncelle(menu_id, ogrenci_fiyati, personel_fiyati, yemek_idleri):
+    """
+    Menünün fiyatlarını ve yemeklerini değiştirir (kaynağa, tek transaction).
+    Yemekhane, tarih ve öğün değiştirilemez. Döner: menünün anahtarı (yemekhane_id, tarih, ogun_id);
+    Aşama 3'te önbellek bu anahtarla temizlenecek.
+    """
+    with baglanti.yazma_baglantisi() as b:
+        b.begin()
+        try:
+            with b.cursor() as imlec:
+                imlec.execute(
+                    "SELECT yemekhane_id, tarih, ogun_id FROM menuler WHERE id = %s FOR UPDATE",
+                    (menu_id,),
+                )
+                menu = imlec.fetchone()
+                if menu is None:
+                    b.rollback()
+                    raise BulunamadiHatasi("Menü bulunamadı.")
+                imlec.execute(
+                    "UPDATE menuler SET ogrenci_fiyati = %s, personel_fiyati = %s WHERE id = %s",
+                    (ogrenci_fiyati, personel_fiyati, menu_id),
+                )
+                imlec.execute("DELETE FROM menu_yemekleri WHERE menu_id = %s", (menu_id,))
+                imlec.executemany(
+                    "INSERT INTO menu_yemekleri (menu_id, yemek_id) VALUES (%s, %s)",
+                    [(menu_id, y) for y in yemek_idleri],
+                )
+            b.commit()
+        except pymysql.err.IntegrityError as hata:
+            b.rollback()
+            if hata.args[0] == 1452:
+                raise IsKuraliHatasi("Seçilen yemek geçerli değil.") from None
+            raise
+        except BulunamadiHatasi:
+            raise
+        except Exception:
+            b.rollback()
+            raise
+    menu["tarih"] = menu["tarih"].isoformat()
     return menu

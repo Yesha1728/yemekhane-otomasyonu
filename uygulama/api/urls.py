@@ -20,5 +20,7 @@ urlpatterns = [
     path("degerlendirme/ekle", degerlendirme.ekle),
     path("yonetici/menuler", yonetici.liste),
     path("yonetici/yemekler", yonetici.yemekler),
-    path("yonetici/menu/<int:menu_id>", yonetici.detay),
+    path("yonetici/menu", yonetici.olustur),
+    path("yonetici/menu/<int:menu_id>", yonetici.detay_veya_guncelle),
+    path("yonetici/turnike", yonetici.turnike),
 ]
