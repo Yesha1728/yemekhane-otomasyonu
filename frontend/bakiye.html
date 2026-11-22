@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bakiye · Yemekhane</title>
+    <link rel="stylesheet" href="/css/temel.css" />
+    <link rel="stylesheet" href="/css/uygulama.css" />
+  </head>
+  <body>
+    <header id="ust"></header>
+    <main class="kapsayici">
+      <h1>Bakiye</h1>
+      <div id="bildirim" class="bildirim" hidden></div>
+      <section class="kart">
+        <p class="soluk kucuk">Güncel bakiye</p>
+        <p class="buyuk-bakiye" id="bakiye">…</p>
+      </section>
+      <section class="kart">
+        <h2>Bakiye yükle</h2>
+        <form id="yukle-formu">
+          <div class="alan">
+            <label for="tutar">Tutar (₺)</label>
+            <input
+              type="text"
+              id="tutar"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="Örn. 100"
+            />
+          </div>
+          <button type="submit" class="dugme">Yükle</button>
+        </form>
+      </section>
+      <section class="kart">
+        <h2>Hareket geçmişi</h2>
+        <div class="tablo-kaydir" id="hareketler"></div>
+      </section>
+    </main>
+    <script src="/js/ortak.js"></script>
+    <script src="/js/bakiye.js"></script>
+  </body>
+</html>
