@@ -96,11 +96,10 @@ Komut: (Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr"; sifre
 {
     "id":  7,
     "ad":  "Mehmet",
-    "soyad":  "YÄ±ldÄ±z",
+    "soyad":  "Yıldız",
     "eposta":  "mehmet.yildiz@ogr.kampus.edu.tr",
     "rol":  "ogrenci"
 }
-
 Aciklama: Dogru e-posta ve sifre ile giris yapildi; sifre ozeti (hash) asla gonderilmez, yalnizca kullanici bilgisi ve oturum jetonu doner.
 
 
@@ -173,4 +172,20 @@ Komut: Api "Get" "/ben" $null $gecici.jeton
 
 Aciklama: Cikis yapilan jeton artik gecersiz, erisim reddedildi.
 
+
+
+============================================================
+5. Giris: dogru sifre (yeniden)
+============================================================
+Komut: (Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr"; sifre = "Yemek2026!" }).kullanici | ConvertTo-Json
+
+{
+    "id":  7,
+    "ad":  "Mehmet",
+    "soyad":  "Yıldız",
+    "eposta":  "mehmet.yildiz@ogr.kampus.edu.tr",
+    "rol":  "ogrenci"
+}
+
+Aciklama: Dogru e-posta ve sifre ile giris yapildi; sifre ozeti (hash) asla gonderilmez, yalnizca kullanici bilgisi ve oturum jetonu doner.
 

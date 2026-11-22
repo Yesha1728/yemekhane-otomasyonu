@@ -27,7 +27,8 @@ class _Kodlayici(DjangoJSONEncoder):
 
 def yanit(veri, durum=200):
     return JsonResponse(veri, status=durum, encoder=_Kodlayici, safe=False,
-                        json_dumps_params={"ensure_ascii": False})
+                        json_dumps_params={"ensure_ascii": False},
+                        content_type="application/json; charset=utf-8")
 
 
 def hata_yaniti(mesaj, durum):
