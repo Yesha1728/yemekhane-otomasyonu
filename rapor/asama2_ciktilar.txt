@@ -1,0 +1,176 @@
+﻿YEMEKHANE OTOMASYONU - ASAMA 2: UYGULAMA (Django Web API + HTML/CSS/JS arayuz)
+Secilen yol: Web API + arayuz. API yalnizca JSON dondurur; arayuz HTML5/CSS3 ve JavaScript fetch ile veriyi alir.
+
+============================================================
+1. Servisler ayakta ve saglikli
+============================================================
+Komut: docker compose ps -a
+
+NAME                        IMAGE                                                                     COMMAND                  SERVICE         CREATED         STATUS                     PORTS
+yemekhane-frontend-1        sha256:dbcd30ac782b80c2f83df56b82529395e782519cd3e5dd2f632696189a0b014a   "httpd-foreground -DΓÇª"   frontend        21 hours ago    Up 28 minutes (healthy)    0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+yemekhane-mysql-primary-1   mysql:8.4                                                                 "docker-entrypoint.sΓÇª"   mysql-primary   21 hours ago    Up 28 minutes (healthy)    0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp
+yemekhane-mysql-replica-1   mysql:8.4                                                                 "docker-entrypoint.sΓÇª"   mysql-replica   21 hours ago    Up 28 minutes (healthy)    0.0.0.0:3308->3306/tcp, [::]:3308->3306/tcp
+yemekhane-redis-1           redis:7.4-alpine                                                          "docker-entrypoint.sΓÇª"   redis           21 hours ago    Up 28 minutes (healthy)    0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+yemekhane-replica-setup-1   mysql:8.4                                                                 "bash /replica-setupΓÇª"   replica-setup   21 hours ago    Exited (0) 8 minutes ago   
+yemekhane-uygulama-1        yemekhane-uygulama                                                        "gunicorn yemekhane.ΓÇª"   uygulama        8 minutes ago   Up 8 minutes (healthy)     8000/tcp
+
+Aciklama: uygulama dahil tum servisler healthy, replica-setup basariyla (kod 0) cikti.
+
+
+============================================================
+2. Uygulama yanit veriyor
+============================================================
+Komut: Api "Get" "/" | ConvertTo-Json
+
+{
+    "uygulama":  "Yemekhane Otomasyonu API",
+    "durum":  "calisiyor"
+}
+
+Aciklama: Apache /api/ istegini Django uygulamasina iletti ve uygulama JSON ile yanit verdi.
+
+
+============================================================
+3. Okuma ve yazma ayrimi
+============================================================
+Komut: Api "Get" "/sunucular" | ConvertTo-Json -Depth 4
+
+{
+    "yazma":  {
+                  "sunucu_no":  1,
+                  "salt_okunur":  0
+              },
+    "okuma":  {
+                  "sunucu_no":  2,
+                  "salt_okunur":  1
+              }
+}
+
+Aciklama: Yazma baglantisi kaynak sunucuya (sunucu_no 1, salt_okunur 0), okuma baglantisi replikaya (sunucu_no 2, salt_okunur 1) gidiyor.
+
+
+============================================================
+4. Katmanli klasor yapisi
+============================================================
+Komut: tree uygulama\api /F /A
+
+Folder PATH listing
+Volume serial number is 0000003E 6467:C67A
+C:\USERS\AYESHA IMRAN\DESKTOP\WEB-ODEV\YEMEKHANE-BASLANGIC\YEMEKHANE-BASLANGIC\UYGULAMA\API
+|   is_kurallari.py
+|   kimlik.py
+|   ortak.py
+|   oturum.py
+|   urls.py
+|   __init__.py
+|   
++---denetleyiciler
+|       bakiye.py
+|       degerlendirme.py
+|       kimlik.py
+|       menu.py
+|       rezervasyon.py
+|       sunucu.py
+|       yonetici.py
+|       __init__.py
+|       
+\---veri
+        baglanti.py
+        degerlendirme_repo.py
+        hatalar.py
+        kullanici_repo.py
+        menu_repo.py
+        rezervasyon_repo.py
+        sunucu_repo.py
+        yonetici_repo.py
+        __init__.py
+
+Aciklama: denetleyiciler (Controller) icinde SQL yok; tum SQL ve stored procedure cagrilari veri/ klasorundedir. is_kurallari.py kurallari tutar.
+
+
+============================================================
+5. Giris: dogru sifre
+============================================================
+Komut: (Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr"; sifre = "Yemek2026!" }).kullanici | ConvertTo-Json
+
+{
+    "id":  7,
+    "ad":  "Mehmet",
+    "soyad":  "YÄ±ldÄ±z",
+    "eposta":  "mehmet.yildiz@ogr.kampus.edu.tr",
+    "rol":  "ogrenci"
+}
+
+Aciklama: Dogru e-posta ve sifre ile giris yapildi; sifre ozeti (hash) asla gonderilmez, yalnizca kullanici bilgisi ve oturum jetonu doner.
+
+
+============================================================
+6. Giris: yanlis sifre
+============================================================
+Komut: Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr"; sifre = "yanlis" }
+
+{"hata": "E-posta ya da şifre hatalı."}
+
+Aciklama: Yanlis sifre Turkce hata mesajiyla reddedildi. Kullanici yoksa da ayni mesaj verilir, boylece hesabin var olup olmadigi sizdirilmaz.
+
+
+============================================================
+7. Giris: eksik bilgi
+============================================================
+Komut: Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr" }
+
+{"hata": "E-posta ve şifre gerekli."}
+
+Aciklama: Sifre gonderilmezse uygulama eksik bilgiyi bildirir.
+
+
+============================================================
+8. Oturum yokken korumali adres
+============================================================
+Komut: Api "Get" "/ben"
+
+{"hata": "Oturum açmanız gerekiyor."}
+
+Aciklama: Jeton olmadan /api/ben adresi reddedildi (401).
+
+
+============================================================
+9. Oturumla korumali adres
+============================================================
+Komut: Api "Get" "/ben" $null $jeton | ConvertTo-Json
+
+{
+    "kullanici":  {
+                      "id":  7,
+                      "ad":  "Mehmet",
+                      "soyad":  "YÄ±ldÄ±z",
+                      "eposta":  "mehmet.yildiz@ogr.kampus.edu.tr",
+                      "rol":  "ogrenci"
+                  }
+}
+
+Aciklama: Gecerli jetonla uygulama istegi yapan kullaniciyi taniyor.
+
+
+============================================================
+10. Cikis
+============================================================
+Komut: Api "Post" "/cikis" $null $gecici.jeton | ConvertTo-Json
+
+{
+    "tamam":  true
+}
+
+Aciklama: Cikista jeton oturum listesinden silindi.
+
+
+============================================================
+11. Cikistan sonra ayni jeton
+============================================================
+Komut: Api "Get" "/ben" $null $gecici.jeton
+
+{"hata": "Oturum açmanız gerekiyor."}
+
+Aciklama: Cikis yapilan jeton artik gecersiz, erisim reddedildi.
+
+
