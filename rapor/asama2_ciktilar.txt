@@ -189,3 +189,454 @@ Komut: (Api "Post" "/giris" @{ eposta = "mehmet.yildiz@ogr.kampus.edu.tr"; sifre
 
 Aciklama: Dogru e-posta ve sifre ile giris yapildi; sifre ozeti (hash) asla gonderilmez, yalnizca kullanici bilgisi ve oturum jetonu doner.
 
+
+============================================================
+12. Yemekhane ve ogun listesi
+============================================================
+Komut: Api "Get" "/secenekler" $null $jeton | ConvertTo-Json -Depth 4
+
+{
+    "yemekhaneler":  [
+                         {
+                             "id":  1,
+                             "ad":  "Merkez Yemekhane",
+                             "konum":  "Kampüs merkezi, sosyal tesisler binası",
+                             "kapasite":  400
+                         },
+                         {
+                             "id":  2,
+                             "ad":  "Mühendislik Yemekhanesi",
+                             "konum":  "Mühendislik Fakültesi zemin kat",
+                             "kapasite":  60
+                         }
+                     ],
+    "ogunler":  [
+                    {
+                        "id":  1,
+                        "ad":  "Kahvaltı",
+                        "sira":  1
+                    },
+                    {
+                        "id":  2,
+                        "ad":  "Öğle",
+                        "sira":  2
+                    },
+                    {
+                        "id":  3,
+                        "ad":  "Akşam",
+                        "sira":  3
+                    }
+                ],
+    "bugun":  "2026-11-22"
+}
+
+Aciklama: Secim kutulari icin listeler ve bugunun tarihi replikadan okunur.
+
+
+============================================================
+13. Gunun menusu
+============================================================
+Komut: $m = Api "Get" "/menu/gunluk" $null $jeton; ($m | Select-Object yemekhane, ogun, tarih, fiyat, toplam_kalori, bos_yer, kapasite, suresi_doldu | Format-List | Out-String); ($m.yemekler | Select-Object kategori, yemek, kalori, vejetaryen, @{ n = "alerjenler"; e = { $_.alerjenler -join ", " } } | Format-Table -AutoSize | Out-String)
+
+
+
+yemekhane     : Merkez Yemekhane
+ogun          : Öğle
+tarih         : 2026-11-22
+fiyat         : 40.0
+toplam_kalori : 1080
+bos_yer       : 394
+kapasite      : 400
+suresi_doldu  : True
+
+
+
+
+
+kategori       yemek         kalori vejetaryen alerjenler          
+--------       -----         ------ ---------- ----------          
+Çorba          Sebze Çorbası    120       True Kereviz             
+Ana Yemek      Izgara Köfte     450      False Gluten, Yumurta     
+Yardımcı Yemek Fırın Makarna    420       True Gluten, Süt, Yumurta
+Salata ve Meze Çoban Salata      90       True
+
+Aciklama: Yemekler kategori sirasiyla, kalori, vejetaryen ve alerjen bilgisiyle gelir; fiyat kullanicinin rolune gore hesaplanir; bos yer ve son saat bilgisi de eklidir.
+
+
+============================================================
+14. Fiyat role gore degisir
+============================================================
+Komut: "Ogrenci (Mehmet) fiyati: " + (Api "Get" "/menu/gunluk" $null $jeton).fiyat; "Personel (Murat) fiyati: " + (Api "Get" "/menu/gunluk" $null $murat.jeton).fiyat
+
+Ogrenci (Mehmet) fiyati: 40.0
+Personel (Murat) fiyati: 90.0
+
+Aciklama: Ayni menu icin ogrenci ile personel farkli fiyat gorur; kural arayuzde degil is_kurallari.py icindedir.
+
+
+============================================================
+15. Haftalik menu
+============================================================
+Komut: "Satir sayisi: " + $hafta.menuler.Count; ($hafta.menuler | Select-Object tarih, ogun, bos_yer, fiyat, yapilabilir, pasiflik_nedeni | Format-Table -AutoSize | Out-String)
+
+Satir sayisi: 18
+
+tarih      ogun     bos_yer fiyat yapilabilir pasiflik_nedeni    
+-----      ----     ------- ----- ----------- ---------------    
+2026-11-22 Kahvaltı     398  25.0       False Rezervasyonunuz var
+2026-11-22 Öğle         394  40.0       False Süre doldu         
+2026-11-22 Akşam        396  40.0       False Süre doldu         
+2026-11-23 Kahvaltı     399  25.0        True                    
+2026-11-23 Öğle         394  40.0        True                    
+2026-11-23 Akşam        398  40.0        True                    
+2026-11-24 Kahvaltı     398  25.0        True                    
+2026-11-24 Öğle         394  40.0       False Rezervasyonunuz var
+2026-11-24 Akşam        398  40.0        True                    
+2026-11-25 Kahvaltı     397  25.0        True                    
+2026-11-25 Öğle         394  40.0        True                    
+2026-11-25 Akşam        396  40.0       False Rezervasyonunuz var
+2026-11-26 Kahvaltı     397  25.0        True                    
+2026-11-26 Öğle         396  40.0        True                    
+2026-11-26 Akşam        398  40.0        True                    
+2026-11-27 Kahvaltı     399  25.0        True                    
+2026-11-27 Öğle         395  40.0        True                    
+2026-11-27 Akşam        397  40.0        True
+
+Aciklama: 7 gun x 3 ogun; her satirda fiyat, bos yer, dugmenin aktif olup olmadigi (yapilabilir) ve pasifse nedeni API'den gelir; arayuz kural bilmez.
+
+
+============================================================
+16. Rezervasyon yapma (sp_rezervasyon_yap)
+============================================================
+Komut: "Onceki bakiye: " + (Api "Get" "/bakiye" $null $jeton).bakiye; Api "Post" "/rezervasyon" @{ menu_id = $hedef.menu_id } $jeton | ConvertTo-Json
+
+Onceki bakiye: 470.0
+{
+    "rezervasyon_id":  369,
+    "ucret":  25.0,
+    "bakiye":  445.0
+}
+
+Aciklama: Rezervasyon kaynak sunucuda saklanan yordamla yapildi; donen bakiye, replika yerine kaynaktan okunur (taze=True), cunku replika birkac milisaniye geride kalabilir.
+
+
+============================================================
+17. Ayni menuye ikinci rezervasyon
+============================================================
+Komut: Api "Post" "/rezervasyon" @{ menu_id = $hedef.menu_id } $jeton
+
+{"hata": "Bu menü için zaten rezervasyonunuz var."}
+
+Aciklama: Yordamin Turkce hata mesaji arayuze oldugu gibi iletilir.
+
+
+============================================================
+18. Suresi gecmis menu
+============================================================
+Komut: Api "Post" "/rezervasyon" @{ menu_id = $gecmis.menu_id } $jeton
+
+{"hata": "Bu menü için rezervasyon süresi doldu."}
+
+Aciklama: Son rezervasyon saati gecen menu icin yordam islemi reddeder.
+
+
+============================================================
+19. Yetersiz bakiye
+============================================================
+Komut: Api "Post" "/rezervasyon" @{ menu_id = $pahali.menu_id } $ayse.jeton
+
+{"hata": "Bakiye yetersiz."}
+
+Aciklama: Bakiyesi 12.50 TL olan ogrenci daha pahali bir menuyu rezerve edemez.
+
+
+============================================================
+20. Rezervasyonlarim
+============================================================
+Komut: (Api "Get" "/rezervasyonlarim?taze=1" $null $jeton).rezervasyonlar | Select-Object -First 10 | Select-Object rezervasyon_id, tarih, ogun, durum, ucret, iptal_edilebilir | Format-Table -AutoSize | Out-String
+
+
+rezervasyon_id tarih      ogun     durum ucret iptal_edilebilir
+-------------- -----      ----     ----- ----- ----------------
+           363 2026-11-27 Akşam    iptal  40.0            False
+           299 2026-11-25 Akşam    aktif  40.0             True
+           271 2026-11-24 Öğle     aktif  40.0             True
+           276 2026-11-24 Kahvaltı aktif  25.0             True
+           264 2026-11-23 Akşam    aktif  40.0             True
+           369 2026-11-23 Kahvaltı aktif  25.0             True
+           236 2026-11-22 Akşam    aktif  40.0            False
+           232 2026-11-22 Öğle     aktif  40.0            False
+           368 2026-11-22 Kahvaltı aktif  25.0            False
+           225 2026-11-22 Kahvaltı aktif  25.0            False
+
+Aciklama: Rezervasyonlar durumlariyla (aktif, kullanildi, iptal) listelenir; iptal_edilebilir alanini API hesaplar.
+
+
+============================================================
+21. Rezervasyon iptali (sp_rezervasyon_iptal)
+============================================================
+Komut: Api "Post" "/rezervasyon/$($iptal.rezervasyon_id)/iptal" $null $jeton | ConvertTo-Json
+
+{
+    "rezervasyon_id":  369,
+    "iade":  25.0,
+    "bakiye":  470.0
+}
+
+Aciklama: Iptalde ucret iade edilir; yeni bakiye kaynaktan okunur.
+
+
+============================================================
+22. Ayni rezervasyonu tekrar iptal
+============================================================
+Komut: Api "Post" "/rezervasyon/$($iptal.rezervasyon_id)/iptal" $null $jeton
+
+{"hata": "Yalnızca aktif rezervasyonlar iptal edilebilir."}
+
+Aciklama: Iptal edilmis rezervasyon tekrar iptal edilemez.
+
+
+============================================================
+23. Baskasinin rezervasyonunu iptal
+============================================================
+Komut: Api "Post" "/rezervasyon/$($iptal.rezervasyon_id)/iptal" $null $murat.jeton
+
+{"hata": "Rezervasyon bulunamadı."}
+
+Aciklama: Kullanici numarasi istekten degil oturumdan alinir; baska birinin rezervasyonu bulunamadi olarak donulur.
+
+
+============================================================
+24. Bakiye ve hareket gecmisi
+============================================================
+Komut: $b = Api "Get" "/bakiye?taze=1" $null $jeton; "Bakiye: " + $b.bakiye; ($b.hareketler | Select-Object -First 6 | Select-Object id, tur, tutar, aciklama | Format-Table -AutoSize | Out-String)
+
+Bakiye: 470.0
+
+ id tur         tutar aciklama          
+ -- ---         ----- --------          
+459 iade         25.0 Rezervasyon iptali
+458 rezervasyon -25.0 Rezervasyon       
+457 yukleme     100.0 Bakiye yükleme    
+456 iade         40.0 Rezervasyon iptali
+455 rezervasyon -25.0 Rezervasyon       
+ 94 rezervasyon -40.0 Rezervasyon
+
+Aciklama: Bakiye ve son hareketler (yukleme, rezervasyon, iade) listelenir.
+
+
+============================================================
+25. Bakiye yukleme (sp_bakiye_yukle)
+============================================================
+Komut: Api "Post" "/bakiye/yukle" @{ tutar = 100 } $jeton | ConvertTo-Json
+
+{
+    "hareket_id":  460,
+    "bakiye":  570.0
+}
+
+Aciklama: Yukleme kaynak sunucuya yazilir; yeni bakiye yordamdan doner.
+
+
+============================================================
+26. Gecersiz yukleme tutari
+============================================================
+Komut: Api "Post" "/bakiye/yukle" @{ tutar = 5 } $jeton
+
+{"hata": "Yükleme tutarı 10 ile 1000 TL arasında olmalıdır."}
+
+Aciklama: 10-1000 TL kurali yordamdadir; Turkce mesaj arayuze oldugu gibi gider.
+
+
+============================================================
+27. Kullanilmis menuler
+============================================================
+Komut: (Api "Get" "/degerlendirme" $null $degJeton).menuler | Select-Object menu_id, tarih, yemekhane, ogun, puan | Format-Table -AutoSize | Out-String
+
+
+menu_id tarih      yemekhane               ogun     puan
+------- -----      ---------               ----     ----
+     32 2026-11-19 Merkez Yemekhane        Öğle        2
+      7 2026-11-15 Merkez Yemekhane        Kahvaltı    4
+      5 2026-11-14 Mühendislik Yemekhanesi Öğle
+
+Aciklama: Yalnizca turnikeden gecilip kullanildi durumuna gelen rezervasyonlar degerlendirilebilir.
+
+
+============================================================
+28. Gecersiz puan
+============================================================
+Komut: Api "Post" "/degerlendirme/ekle" @{ menu_id = $yeni.menu_id; puan = 6 } $degJeton
+
+{"hata": "Puan 1 ile 5 arasında olmalıdır."}
+
+Aciklama: Puan 1-5 disinda ise uygulama reddeder.
+
+
+============================================================
+29. Degerlendirme ekleme
+============================================================
+Komut: Api "Post" "/degerlendirme/ekle" @{ menu_id = $yeni.menu_id; puan = 4; yorum = "Guzeldi" } $degJeton | ConvertTo-Json
+
+{
+    "tamam":  true
+}
+
+Aciklama: Kullanilmis menuye puan ve yorum kaydedildi.
+
+
+============================================================
+30. Ikinci oy
+============================================================
+Komut: Api "Post" "/degerlendirme/ekle" @{ menu_id = $yeni.menu_id; puan = 5 } $degJeton
+
+{"hata": "Bu menüyü zaten değerlendirdiniz."}
+
+Aciklama: Kisi basina menu basina tek oy kurali veritabanindaki benzersizlik kisitiyla korunur.
+
+
+============================================================
+31. Kullanilmamis menu
+============================================================
+Komut: Api "Post" "/degerlendirme/ekle" @{ menu_id = $aktif.menu_id; puan = 3 } $degJeton
+
+{"hata": "Yalnızca kullandığınız (turnikeden geçtiğiniz) menüyü değerlendirebilirsiniz."}
+
+Aciklama: Turnikeden gecilmemis menu degerlendirilemez.
+
+
+============================================================
+32. Ogrenci yonetici paneline giremez
+============================================================
+Komut: Api "Get" "/yonetici/menuler" $null $jeton
+
+{"hata": "Bu işlem için yetkiniz yok."}
+
+Aciklama: Yetki denetimi sunucudadir: rolu yonetici olmayan kullaniciya 403 doner.
+
+
+============================================================
+33. Yonetici: menu bazinda doluluk ve puan
+============================================================
+Komut: $y = Api "Get" "/yonetici/menuler" $null $yon.jeton; "Menu sayisi: " + $y.menuler.Count; ($y.menuler | Select-Object -First 8 | Select-Object tarih, yemekhane, ogun, rezerve, kapasite, ortalama_puan, oy_sayisi | Format-Table -AutoSize | Out-String)
+
+Menu sayisi: 78
+
+tarih      yemekhane               ogun     rezerve kapasite ortalama_puan oy_sayisi
+-----      ---------               ----     ------- -------- ------------- ---------
+2026-11-27 Merkez Yemekhane        Kahvaltı       1      400                       0
+2026-11-27 Merkez Yemekhane        Öğle           5      400                       0
+2026-11-27 Merkez Yemekhane        Akşam          3      400                       0
+2026-11-27 Mühendislik Yemekhanesi Kahvaltı       3       60                       0
+2026-11-27 Mühendislik Yemekhanesi Öğle           6       60                       0
+2026-11-27 Mühendislik Yemekhanesi Akşam          1       60                       0
+2026-11-26 Merkez Yemekhane        Kahvaltı       3      400                       0
+2026-11-26 Merkez Yemekhane        Öğle           4      400                       0
+
+Aciklama: Rapor replikadan okunur; doluluk ve ortalama puan menu bazinda gosterilir.
+
+
+============================================================
+34. Yonetici: menu olusturma
+============================================================
+Komut: Api "Post" "/yonetici/menu" @{ yemekhane_id = 1; tarih = $tarih; ogun_id = 2; ogrenci_fiyati = 35; personel_fiyati = 55; yemek_idleri = @($idler) } $yon.jeton | ConvertTo-Json
+
+{
+    "menu_id":  87
+}
+
+Aciklama: Menu ve yemekleri tek transaction ile kaynaga yazildi.
+
+
+============================================================
+35. Ayni menuyu tekrar olusturma
+============================================================
+Komut: Api "Post" "/yonetici/menu" @{ yemekhane_id = 1; tarih = $tarih; ogun_id = 2; ogrenci_fiyati = 35; personel_fiyati = 55; yemek_idleri = @($idler) } $yon.jeton
+
+{"hata": "Bu yemekhane, tarih ve öğün için zaten bir menü var."}
+
+Aciklama: Yemekhane + tarih + ogun basina tek menu kurali.
+
+
+============================================================
+36. Yemeksiz menu
+============================================================
+Komut: Api "Post" "/yonetici/menu" @{ yemekhane_id = 1; tarih = $tarih; ogun_id = 3; ogrenci_fiyati = 35; personel_fiyati = 55; yemek_idleri = @() } $yon.jeton
+
+{"hata": "Menüde en az bir yemek seçilmelidir."}
+
+Aciklama: Menude en az bir yemek olmali.
+
+
+============================================================
+37. Yonetici: menu duzenleme
+============================================================
+Komut: Api "Put" "/yonetici/menu/$($yeniMenu.menu_id)" @{ ogrenci_fiyati = 40; personel_fiyati = 60; yemek_idleri = @($idler | Select-Object -First 2) } $yon.jeton | ConvertTo-Json
+
+{
+    "tamam":  true
+}
+
+Aciklama: Fiyat ve yemekler guncellendi (kaynaga, transaction ile).
+
+
+============================================================
+38. Duzenlenen menu
+============================================================
+Komut: Api "Get" "/yonetici/menu/$($yeniMenu.menu_id)" $null $yon.jeton | ConvertTo-Json
+
+{
+    "menu_id":  87,
+    "yemekhane_id":  1,
+    "tarih":  "2027-01-06",
+    "ogun_id":  2,
+    "ogrenci_fiyati":  40.0,
+    "personel_fiyati":  60.0,
+    "yemek_idleri":  [
+                         2,
+                         5
+                     ]
+}
+
+Aciklama: Duzenleme verisi kaynaktan okunur; yeni fiyat ve 2 yemek kalici.
+
+
+============================================================
+39. Ogrencinin gordugu yeni fiyat
+============================================================
+Komut: "Mehmet'in gordugu fiyat: " + (Api "Get" "/menu/gunluk?yemekhane_id=1&ogun_id=2&tarih=$tarih" $null $jeton).fiyat
+
+Mehmet'in gordugu fiyat: 40.0
+
+Aciklama: Yonetici degisikligi ogrencinin menusune yansidi.
+
+
+============================================================
+40. Turnike: servis saati disi
+============================================================
+Komut: Api "Post" "/yonetici/turnike" @{ kullanici_id = 7; yemekhane_id = 1; zaman = "${bugun}T03:00" } $yon.jeton
+
+{"hata": "Şu an bu yemekhanede servis yok."}
+
+Aciklama: sp_turnike_gecis servis saati disinda islemi reddeder.
+
+
+============================================================
+41. Turnike gecisi (sp_turnike_gecis)
+============================================================
+Komut: Api "Post" "/yonetici/turnike" @{ kullanici_id = $tk; yemekhane_id = $ty; zaman = $tz } $yon.jeton
+
+{"hata": "Bu öğün için aktif rezervasyonunuz yok."}
+
+Aciklama: Turnikeden gecis rezervasyonu kullanildi durumuna getirir.
+
+
+============================================================
+41. Turnike gecisi (sp_turnike_gecis)
+============================================================
+Komut: Api "Post" "/yonetici/turnike" @{ kullanici_id = $tk; yemekhane_id = $ty; zaman = $tz } $yon.jeton
+
+{"hata": "Bu öğün için aktif rezervasyonunuz yok."}
+
+Aciklama: Turnikeden gecis rezervasyonu kullanildi durumuna getirir.
+
