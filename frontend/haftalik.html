@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Haftalık menü ve rezervasyon · Yemekhane</title>
+    <link rel="stylesheet" href="/css/temel.css" />
+    <link rel="stylesheet" href="/css/uygulama.css" />
+  </head>
+  <body>
+    <header id="ust"></header>
+    <main class="kapsayici">
+      <h1>Haftalık menü ve rezervasyon</h1>
+      <div id="bildirim" class="bildirim" hidden></div>
+      <div class="hafta-gezinme">
+        <div class="alan">
+          <label for="yemekhane">Yemekhane</label
+          ><select id="yemekhane"></select>
+        </div>
+        <div class="alan">
+          <label for="baslangic">Başlangıç günü</label
+          ><input type="date" id="baslangic" />
+        </div>
+        <button
+          type="button"
+          class="dugme dugme-ikincil"
+          id="onceki"
+          aria-label="Önceki hafta"
+        >
+          ‹ Önceki
+        </button>
+        <button
+          type="button"
+          class="dugme dugme-ikincil"
+          id="sonraki"
+          aria-label="Sonraki hafta"
+        >
+          Sonraki ›
+        </button>
+      </div>
+      <section id="icerik" aria-live="polite"></section>
+    </main>
+    <script src="/js/ortak.js"></script>
+    <script src="/js/haftalik.js"></script>
+  </body>
+</html>
