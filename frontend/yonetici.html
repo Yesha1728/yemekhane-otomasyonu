@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yönetici paneli · Yemekhane</title>
+  <link rel="stylesheet" href="/css/temel.css">
+  <link rel="stylesheet" href="/css/uygulama.css">
+</head>
+<body>
+  <header id="ust"></header>
+  <main class="kapsayici">
+    <h1>Yönetici paneli</h1>
+    <div id="bildirim" class="bildirim" hidden></div>
+    <section class="kart">
+      <h2>Menüler: doluluk ve puan</h2>
+      <form id="filtre" class="filtre">
+        <div><label for="f-yemekhane">Yemekhane</label><select id="f-yemekhane"></select></div>
+        <div><label for="f-baslangic">Başlangıç</label><input type="date" id="f-baslangic"></div>
+        <div><label for="f-bitis">Bitiş</label><input type="date" id="f-bitis"></div>
+      </form>
+      <div class="tablo-kaydir" id="liste"></div>
+    </section>
+
+    <section class="kart" id="form-karti">
+      <h2 id="form-baslik">Yeni menü</h2>
+      <form id="menu-formu">
+        <div class="alan-satir">
+          <div class="alan"><label for="m-yemekhane">Yemekhane</label><select id="m-yemekhane"></select></div>
+          <div class="alan"><label for="m-ogun">Öğün</label><select id="m-ogun"></select></div>
+        </div>
+        <div class="alan"><label for="m-tarih">Tarih</label><input type="date" id="m-tarih"></div>
+        <div class="alan-satir">
+          <div class="alan"><label for="m-ogrenci">Öğrenci fiyatı (₺)</label><input type="text" id="m-ogrenci" inputmode="decimal"></div>
+          <div class="alan"><label for="m-personel">Personel fiyatı (₺)</label><input type="text" id="m-personel" inputmode="decimal"></div>
+        </div>
+        <div id="m-yemekler"></div>
+        <div class="dugme-satiri">
+          <button type="submit" class="dugme" id="m-kaydet">Menüyü oluştur</button>
+          <button type="button" class="dugme dugme-ikincil" id="m-vazgec" hidden>Vazgeç</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="kart">
+      <h2>Turnike geçişi (deneme)</h2>
+      <p class="soluk kucuk">Bir kullanıcının kartını okutmayı taklit eder. Zaman boşsa şu an kullanılır.</p>
+      <form id="turnike-formu">
+        <div class="alan-satir">
+          <div class="alan"><label for="t-kullanici">Kullanıcı numarası</label><input type="text" id="t-kullanici" inputmode="numeric"></div>
+          <div class="alan"><label for="t-yemekhane">Yemekhane</label><select id="t-yemekhane"></select></div>
+        </div>
+        <div class="alan"><label for="t-zaman">Zaman (isteğe bağlı)</label><input type="datetime-local" id="t-zaman"></div>
+        <button type="submit" class="dugme">Kartı okut</button>
+      </form>
+    </section>
+  </main>
+  <script src="/js/ortak.js"></script>
+  <script src="/js/yonetici.js"></script>
+</body>
+</html>

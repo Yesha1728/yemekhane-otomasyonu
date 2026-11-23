@@ -640,3 +640,72 @@ Komut: Api "Post" "/yonetici/turnike" @{ kullanici_id = $tk; yemekhane_id = $ty;
 
 Aciklama: Turnikeden gecis rezervasyonu kullanildi durumuna getirir.
 
+---------------------------------------------------------------------
+ISTEGIN UYGULAMA ICINDEKI YOLU (route -> Controller -> veri katmani -> yanit)
+Ornek: Rezervasyon yapma    POST /api/rezervasyon    govde: {"menu_id": 56}
+
+1) Apache (frontend container) /api/ ile baslayan istegi uygulama container'ina iletir.
+
+2) ROUTE        uygulama/api/urls.py
+       path("rezervasyon", rezervasyon.yap),
+
+3) CONTROLLER   uygulama/api/denetleyiciler/rezervasyon.py
+       @uc_nokta("POST")
+       def yap(istek):
+           menu_id = tamsayi(govde(istek).get("menu_id"), "menu_id")
+           sonuc = rezervasyon_repo.yap(istek.kullanici["id"], menu_id)
+           bakiye = kullanici_repo.bakiye_getir(istek.kullanici["id"], taze=True)
+           return yanit({"rezervasyon_id": ..., "ucret": ..., "bakiye": bakiye}, 201)
+   - Controller icinde SQL yoktur.
+   - Kullanici numarasi istekten degil oturumdan (istek.kullanici) alinir; kimse baskasi adina rezervasyon yapamaz.
+   - @uc_nokta: HTTP yontemini, oturumu ve rolu denetler; hatalari JSON'a cevirir.
+
+4) VERI KATMANI uygulama/api/veri/rezervasyon_repo.py
+       def yap(kullanici_id, menu_id):
+           with baglanti.yazma_baglantisi() as b:        # kaynak: mysql-primary
+               return baglanti.yordam_cagir(b, "sp_rezervasyon_yap", kullanici_id, menu_id)
+
+5) VERITABANI   CALL sp_rezervasyon_yap(kullanici_id, menu_id) kaynak sunucuda calisir.
+   Yordam bakiye, son saat, kapasite ve tekrar rezervasyon kontrollerini yapar. Kural ihlalinde
+   SQLSTATE 45000 ile Turkce mesaj verir (ornek: "Bakiye yetersiz.").
+
+6) HATA YOLU    baglanti.yordam_cagir, MySQL hata kodu 1644'u IsKuraliHatasi'na cevirir;
+   @uc_nokta bunu {"hata": "..."} (HTTP 400) yapar; arayuzdeki api() fonksiyonu (ortak.js)
+   mesaji degistirmeden kirmizi bildirim kutusunda gosterir.
+
+7) YANIT        Basarida HTTP 201 ve {"rezervasyon_id": ..., "ucret": ..., "bakiye": ...} doner.
+   Gosterilen bakiye kaynaktan okunur (taze=True).
+
+---------------------------------------------------------------------
+OKUMA / YAZMA AYRIMI VE REPLIKASYON GECIKMESI
+Yazma islemleri (rezervasyon yapma, iptal, bakiye yukleme, turnike gecisi, menu olusturma ve duzenleme,
+degerlendirme ekleme) kaynak sunucuya (mysql-primary) gider. Listeleme ve raporlar (gunun menusu, haftalik menu,
+rezervasyon listesi, bakiye hareketleri, yonetici raporlari) replikaya (mysql-replica) gider. Giris sorgusu,
+kural kontrolleri ve duzenleme verisi gibi her zaman guncel olmasi gereken kucuk okumalar da kaynaktan yapilir.
+
+MySQL replikasyonu eszamansizdir: kaynaktaki bir degisiklik replikaya birkac milisaniye sonra ulasir. Bu yuzden
+bir kullanici rezervasyon yaptiktan hemen sonra bakiyesi replikadan okunsaydi eski deger gorunebilirdi.
+Bunu onlemek icin yazma isleminden hemen sonra gosterilen bakiye kaynaktan okunur (kodda taze=True), ve arayuz
+yazmadan hemen sonra listeleri ?taze=1 ile kaynaktan yeniler. Diger zamanlarda okumalar replikaya gider; boylece
+kaynak sunucunun yuku azalir ve replika, kaynak coktugunde verinin yedegi olarak kalir.
+
+Kanit: "Okuma ve yazma ayrimi" blogunda yazma baglantisi sunucu_no 1 (salt_okunur 0), okuma baglantisi
+sunucu_no 2 (salt_okunur 1) olarak gorunur.
+
+---------------------------------------------------------------------
+GEREKSINIM - KANIT OZETI (ASAMA 2)
+Katman ayrimi ve stored procedure kullanimi
+   - Klasor yapisi ve katmanlar: "Katmanli klasor yapisi" blogu; Controller icinde SQL yoktur, tum SQL veri/ klasorundedir.
+   - Dort yordam da uygulamadan cagrilir: sp_rezervasyon_yap (rezervasyon yapma blogu), sp_rezervasyon_iptal
+     (iptal blogu), sp_bakiye_yukle (bakiye yukleme blogu), sp_turnike_gecis (turnike blogu).
+Yedi ekran (HTML5 + CSS3 + JavaScript fetch)
+   1) Giris / cikis   2) Gunun menusu   3) Haftalik menu ve rezervasyon   4) Rezervasyonlarim
+   5) Bakiye   6) Degerlendirme   7) Yonetici paneli   (ekran goruntuleri: rapor/ekran/ klasoru)
+Okuma/yazma ayrimi ve hata mesajlarinin arayuze tasinmasi
+   - "Okuma ve yazma ayrimi" blogu ve yukaridaki paragraf.
+   - "Ayni menuye ikinci rezervasyon", "Yetersiz bakiye", "Gecersiz yukleme tutari" bloklari: yordamin Turkce
+     mesaji API uzerinden arayuzde oldugu gibi gosterilir.
+Rol ve yetki
+   - Rolu yonetici olmayan kullanici yonetici adreslerinde 403 alir ("Ogrenci yonetici paneline giremez" blogu).
+Telefon uyumu
+   - Arayuz 400 px genislikte denenmistir (ekran goruntusu: rapor/ekran/).
