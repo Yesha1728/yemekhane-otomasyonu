@@ -1,4 +1,8 @@
-from . import baglanti
+import logging
+
+from . import baglanti, menu_onbellek
+
+gunluk = logging.getLogger("yemekhane.menu")
 
 
 def bugun(taze=False):
@@ -18,8 +22,27 @@ def ogunler(taze=False):
 
 def menu_icerik(yemekhane_id, tarih, ogun_id, taze=False):
     """
-    Bir menünün içeriği (yemekler, kalori, alerjen). Kullanıcıya özel olmayan, değişmeyen kısım.
-    Menü yoksa None. Yemekler kategori sırasına göre gelir.
+    Bir menünün içeriği. Önce Redis'e bakılır (cache-aside); yoksa veritabanından okunur
+    ve bir sonraki istek için Redis'e yazılır. Menü yoksa None (yok olan menü önbelleğe yazılmaz).
+
+    Önbellek ölü kalmasın diye yazılacak veri KAYNAKTAN okunur: replika birkaç milisaniye
+    geride olabilir, eski veriyi gün sonuna kadar önbellekte tutmak istemeyiz.
+    """
+    menu = menu_onbellek.getir(yemekhane_id, tarih, ogun_id)
+    if menu is not None:
+        gunluk.info("Menü Redis'ten geldi: %s", menu_onbellek.anahtar(yemekhane_id, tarih, ogun_id))
+        return menu
+
+    menu = _menu_icerik_db(yemekhane_id, tarih, ogun_id, taze=True)
+    if menu is not None:
+        menu_onbellek.yaz(yemekhane_id, tarih, ogun_id, menu)
+    return menu
+
+
+def _menu_icerik_db(yemekhane_id, tarih, ogun_id, taze=False):
+    """
+    Bir menünün içeriği (yemekler, kalori, alerjen), veritabanından. Kullanıcıya özel olmayan,
+    değişmeyen kısım. Menü yoksa None. Yemekler kategori sırasına göre gelir.
     """
     with baglanti.okuma_baglantisi(taze) as b:
         satirlar = baglanti.sorgula(

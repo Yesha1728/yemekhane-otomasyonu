@@ -1,6 +1,6 @@
 import pymysql
 
-from . import baglanti
+from . import baglanti, menu_onbellek
 from .hatalar import BulunamadiHatasi, IsKuraliHatasi
 
 
@@ -123,5 +123,7 @@ def menu_guncelle(menu_id, ogrenci_fiyati, personel_fiyati, yemek_idleri):
         except Exception:
             b.rollback()
             raise
+        
     menu["tarih"] = menu["tarih"].isoformat()
+    menu_onbellek.sil(menu["yemekhane_id"], menu["tarih"], menu["ogun_id"])
     return menu
