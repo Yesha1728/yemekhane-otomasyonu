@@ -3,6 +3,7 @@
 
 Arayüz (JavaScript) hiçbir iş kuralı bilmez; yalnızca buradan gelen sonuçları gösterir.
 """
+from .veri.hatalar import IsKuraliHatasi
 from decimal import ROUND_HALF_UP, Decimal
 
 
@@ -41,3 +42,18 @@ def pasiflik_nedeni(suresi_doldu, bos_yer, rezervasyon_durumu):
 def iptal_edilebilir(durum, suresi_doldu):
     """Yalnızca aktif ve son saati geçmemiş rezervasyon iptal edilebilir."""
     return durum == "aktif" and not suresi_doldu
+
+def alerjen_secimi_temizle(secilen, gecerli_idler):
+    """Gelen alerjen listesini denetler: yalnızca var olan alerjen numaraları kabul edilir. Tekrarlar atılır."""
+    temiz = set()
+    for x in secilen:
+        if isinstance(x, bool) or not isinstance(x, int) or x not in gecerli_idler:
+            raise IsKuraliHatasi("Geçersiz alerjen seçimi.")
+        temiz.add(x)
+    return sorted(temiz)
+
+
+def alerjen_uyarisi(yemek_alerjen_idler, kullanici_alerjen_idler, alerjen_adlari):
+    """Yemeğin alerjenlerinden kullanıcının seçtiklerinin adları. Hiçbiri yoksa boş liste (uyarı yok)."""
+    secili = set(kullanici_alerjen_idler)
+    return [alerjen_adlari[i] for i in yemek_alerjen_idler if i in secili and i in alerjen_adlari]

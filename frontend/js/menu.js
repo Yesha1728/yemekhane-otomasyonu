@@ -1,5 +1,6 @@
 "use strict";
-/* GÜNÜN MENÜSÜ: yemekhane, öğün ve tarih seçilir; yemekler, toplam kalori, vejetaryen ve alerjen bilgisi gösterilir. */
+/* GÜNÜN MENÜSÜ: yemekhane, öğün ve tarih seçilir; yemekler, toplam kalori, vejetaryen ve alerjen bilgisi gösterilir.
+   Alerjen uyarısı API'den gelir (uyari_alerjenleri); burada kural yoktur. */
 
 const kullanici = sayfaBaslat("menu.html");
 if (kullanici) basla();
@@ -57,12 +58,26 @@ function menuKarti(menu) {
     }
     grup.yemekler.push(y);
   }
+  const uyarili = menu.yemekler.filter(
+    (y) => y.uyari_alerjenleri.length > 0,
+  ).length;
 
   return el(
     "article",
     { sinif: "kart" },
     el("h2", {}, menu.yemekhane + " · " + menu.ogun),
     el("p", { sinif: "soluk" }, gunYaz(menu.tarih)),
+    uyarili > 0
+      ? el(
+          "div",
+          { sinif: "bildirim bildirim-hata", role: "alert" },
+          "⚠ Alerjen uyarısı: bu menüde " +
+            menu.uyari_alerjenleri.join(", ") +
+            " içeren " +
+            uyarili +
+            " yemek var.",
+        )
+      : null,
     el(
       "div",
       { sinif: "ozet" },
@@ -107,11 +122,19 @@ function kutuOge(baslik, deger) {
 }
 
 function yemekSatiri(y) {
+  const uyari = y.uyari_alerjenleri.length > 0;
   return el(
     "div",
-    { sinif: "yemek" },
+    { sinif: "yemek" + (uyari ? " yemek-uyarili" : "") },
     el("span", { sinif: "ad" }, y.yemek),
     el("span", { sinif: "kalori" }, y.kalori + " kcal"),
+    uyari
+      ? el(
+          "span",
+          { sinif: "rozet rozet-hata" },
+          "⚠ Alerjeniniz var: " + y.uyari_alerjenleri.join(", "),
+        )
+      : null,
     y.vejetaryen
       ? el("span", { sinif: "rozet rozet-yesil" }, "Vejetaryen")
       : null,

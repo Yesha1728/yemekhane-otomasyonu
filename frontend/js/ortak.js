@@ -164,6 +164,7 @@ const SAYFALAR = [
   ["haftalik.html", "Haftalık menü"],
   ["rezervasyonlarim.html", "Rezervasyonlarım"],
   ["bakiye.html", "Bakiye"],
+  ["profil.html", "Profil"],
   ["degerlendirme.html", "Değerlendirme"],
 ];
 const ROL_ETIKET = {

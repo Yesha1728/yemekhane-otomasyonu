@@ -322,3 +322,26 @@ legend {
   flex-wrap: wrap;
   margin-top: 0.5rem;
 }
+
+.onay-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 1rem 0;
+}
+.onay-satiri {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 400;
+}
+.onay-satiri input {
+  width: auto;
+  margin: 0;
+}
+
+.yemek-uyarili {
+  background: var(--hata-zemin);
+  border-radius: 6px;
+}

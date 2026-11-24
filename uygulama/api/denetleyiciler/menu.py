@@ -1,6 +1,6 @@
 from .. import is_kurallari
 from ..ortak import tamsayi, tarih, taze_mi, uc_nokta, yanit
-from ..veri import menu_repo
+from ..veri import kullanici_repo, menu_repo
 from ..veri.hatalar import BulunamadiHatasi
 
 
@@ -17,7 +17,7 @@ def secenekler(istek):
 
 @uc_nokta("GET")
 def gunluk(istek):
-    """Bir yemekhanenin bir günkü bir öğün menüsü."""
+    """Bir yemekhanenin bir günkü bir öğün menüsü; kullanıcının alerjenlerine göre uyarılarla."""
     taze = taze_mi(istek)
     yemekhane_id = tamsayi(istek.GET.get("yemekhane_id"), "yemekhane_id", varsayilan=1)
     ogun_id = tamsayi(istek.GET.get("ogun_id"), "ogun_id", varsayilan=2)
@@ -36,6 +36,17 @@ def gunluk(istek):
         "bos_yer": doluluk["bos_yer"],
         "suresi_doldu": doluluk["suresi_doldu"],
     })
+
+    kullanici_idler = kullanici_repo.alerjenleri_getir(istek.kullanici["id"], taze)
+    adlar = {a["id"]: a["ad"] for a in kullanici_repo.alerjen_listesi(taze)} if kullanici_idler else {}
+    yemekler, uyari_adlari = [], set()
+    for y in menu["yemekler"]:
+        y = dict(y)
+        y["uyari_alerjenleri"] = is_kurallari.alerjen_uyarisi(y["alerjen_idler"], kullanici_idler, adlar)
+        uyari_adlari.update(y["uyari_alerjenleri"])
+        yemekler.append(y)
+    sonuc["yemekler"] = yemekler
+    sonuc["uyari_alerjenleri"] = sorted(uyari_adlari)
     return yanit(sonuc)
 
 @uc_nokta("GET")
