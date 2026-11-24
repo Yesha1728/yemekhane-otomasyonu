@@ -5,14 +5,18 @@ from ..veri import kullanici_repo, rezervasyon_repo
 
 @uc_nokta("POST")
 def yap(istek):
-    menu_id = tamsayi(govde(istek).get("menu_id"), "menu_id")
+    veri = govde(istek)
+    menu_id = tamsayi(veri.get("menu_id"), "menu_id")
+    # Porsiyon seçilmediyse tam porsiyon. Geçerli olup olmadığını ve öğüne uyup uymadığını yordam denetler.
+    porsiyon = str(veri.get("porsiyon") or "tam").strip().lower()
     # Kullanıcı numarası istekten değil, oturumdan alınır: kimse başkası adına rezervasyon yapamaz.
-    sonuc = rezervasyon_repo.yap(istek.kullanici["id"], menu_id)          # sp_rezervasyon_yap (kaynak)
+    sonuc = rezervasyon_repo.yap(istek.kullanici["id"], menu_id, porsiyon)   # sp_rezervasyon_yap (kaynak)
     # Gösterilecek bakiye KAYNAKTAN okunur: replika henüz yeni bakiyeyi almamış olabilir.
     bakiye = kullanici_repo.bakiye_getir(istek.kullanici["id"], taze=True)
     return yanit({
         "rezervasyon_id": sonuc["rezervasyon_id"],
         "ucret": sonuc["ucret"],
+        "porsiyon": sonuc["porsiyon"],
         "bakiye": bakiye,
     }, 201)
 

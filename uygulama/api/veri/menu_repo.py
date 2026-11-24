@@ -98,15 +98,15 @@ def menu_doluluk(menu_id, taze=False):
     return satir
 
 def haftalik(yemekhane_id, baslangic, kullanici_id, taze=False):
-    """Başlangıç gününden itibaren 7 günün menüleri; boş yer ve kullanıcının rezervasyon durumuyla."""
+    """Başlangıç gününden itibaren 7 günün menüleri; boş yer, porsiyon izni ve kullanıcının rezervasyon durumuyla."""
     with baglanti.okuma_baglantisi(taze) as b:
         satirlar = baglanti.sorgula(
             b,
-            """SELECT d.menu_id, d.tarih, d.ogun_id, d.ogun,
+            """SELECT d.menu_id, d.tarih, d.ogun_id, d.ogun, o.yarim_porsiyon,
                       d.kapasite, d.rezerve, d.bos_yer, d.rezervasyon_son,
                       (NOW() >= d.rezervasyon_son) AS suresi_doldu,
                       m.ogrenci_fiyati, m.personel_fiyati,
-                      r.id AS rezervasyon_id, r.durum AS rezervasyon_durumu,
+                      r.id AS rezervasyon_id, r.durum AS rezervasyon_durumu, r.porsiyon AS rezervasyon_porsiyonu,
                       (SELECT GROUP_CONCAT(y.ad ORDER BY k.sira, y.ad SEPARATOR ', ')
                          FROM menu_yemekleri my
                          JOIN yemekler y           ON y.id = my.yemek_id
@@ -114,6 +114,7 @@ def haftalik(yemekhane_id, baslangic, kullanici_id, taze=False):
                         WHERE my.menu_id = d.menu_id) AS yemekler
                  FROM v_menu_doluluk d
                  JOIN menuler m ON m.id = d.menu_id
+                 JOIN ogunler o ON o.id = d.ogun_id
                  LEFT JOIN rezervasyonlar r
                         ON r.menu_id = d.menu_id AND r.kullanici_id = %s
                 WHERE d.yemekhane_id = %s
@@ -123,4 +124,5 @@ def haftalik(yemekhane_id, baslangic, kullanici_id, taze=False):
         )
     for s in satirlar:
         s["suresi_doldu"] = bool(s["suresi_doldu"])
+        s["yarim_porsiyon"] = bool(s["yarim_porsiyon"])
     return satirlar

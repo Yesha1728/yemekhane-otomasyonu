@@ -1,10 +1,10 @@
 from . import baglanti
 
 
-def yap(kullanici_id, menu_id):
-    """sp_rezervasyon_yap · yazma (kaynak). Döner: rezervasyon_id, ucret, bakiye"""
+def yap(kullanici_id, menu_id, porsiyon):
+    """sp_rezervasyon_yap · yazma (kaynak). Döner: rezervasyon_id, ucret, porsiyon, bakiye"""
     with baglanti.yazma_baglantisi() as b:
-        return baglanti.yordam_cagir(b, "sp_rezervasyon_yap", kullanici_id, menu_id)
+        return baglanti.yordam_cagir(b, "sp_rezervasyon_yap", kullanici_id, menu_id, porsiyon)
 
 
 def iptal(kullanici_id, rezervasyon_id):
@@ -24,7 +24,7 @@ def listele(kullanici_id, taze=False):
     with baglanti.okuma_baglantisi(taze) as b:
         satirlar = baglanti.sorgula(
             b,
-            """SELECT r.id AS rezervasyon_id, r.menu_id, r.durum, r.ucret,
+            """SELECT r.id AS rezervasyon_id, r.menu_id, r.durum, r.porsiyon, r.ucret,
                       r.olusturma, r.kullanma_zamani, r.iptal_zamani,
                       m.tarih, yh.ad AS yemekhane, o.ad AS ogun,
                       TIMESTAMP(m.tarih, o.son_saat)             AS rezervasyon_son,

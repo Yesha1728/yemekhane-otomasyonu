@@ -40,7 +40,7 @@ def gunluk(istek):
 
 @uc_nokta("GET")
 def haftalik(istek):
-    """Başlangıç gününden itibaren 7 günlük menü; boş yer, fiyat ve düğme durumuyla."""
+    """Başlangıç gününden itibaren 7 günlük menü; boş yer, fiyat, yarım porsiyon ve düğme durumuyla."""
     taze = taze_mi(istek)
     yemekhane_id = tamsayi(istek.GET.get("yemekhane_id"), "yemekhane_id", varsayilan=1)
     baslangic = tarih(istek.GET.get("baslangic"), "baslangic", varsayilan=menu_repo.bugun(taze))
@@ -49,6 +49,7 @@ def haftalik(istek):
     satirlar = menu_repo.haftalik(yemekhane_id, baslangic, istek.kullanici["id"], taze)
     for s in satirlar:
         s["fiyat"] = is_kurallari.kullanici_fiyati(rol, s["ogrenci_fiyati"], s["personel_fiyati"])
+        s["yarim_fiyat"] = is_kurallari.yarim_fiyat(s["fiyat"]) if s["yarim_porsiyon"] else None
         s["yapilabilir"] = is_kurallari.rezervasyon_yapilabilir(
             s["suresi_doldu"], s["bos_yer"], s["rezervasyon_durumu"])
         s["pasiflik_nedeni"] = is_kurallari.pasiflik_nedeni(
