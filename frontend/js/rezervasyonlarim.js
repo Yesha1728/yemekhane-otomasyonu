@@ -1,6 +1,8 @@
 "use strict";
 /* REZERVASYONLARIM: aktif, kullanıldı ve iptal durumları; süresi dolmamışsa iptal. */
 
+const PORSIYON_ETIKET = { tam: "Tam porsiyon", yarim: "Yarım porsiyon" };
+
 const kullanici = sayfaBaslat("rezervasyonlarim.html");
 if (kullanici) basla();
 
@@ -44,6 +46,7 @@ function basla() {
         durumRozeti(r.durum),
       ),
       el("div", { sinif: "soluk kucuk" }, r.yemekhane),
+      el("div", {}, "Porsiyon: ", PORSIYON_ETIKET[r.porsiyon] || r.porsiyon),
       el("div", {}, "Ücret: ", el("span", { sinif: "fiyat" }, para(r.ucret))),
       r.durum === "kullanildi" && r.kullanma_zamani
         ? el(

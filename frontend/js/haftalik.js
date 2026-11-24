@@ -2,6 +2,8 @@
 /* HAFTALIK MENÜ VE REZERVASYON
    Düğmenin aktif/pasif olması ve yazısı API'den gelir (yapilabilir, pasiflik_nedeni); burada kural yoktur. */
 
+const PORSIYON_ETIKET = { tam: "Tam porsiyon", yarim: "Yarım porsiyon" };
+
 const kullanici = sayfaBaslat("haftalik.html");
 if (kullanici) basla();
 
@@ -66,16 +68,39 @@ async function basla() {
   }
 
   function ogunSatiri(m) {
+    const secim =
+      m.yapilabilir && m.yarim_porsiyon
+        ? el(
+            "select",
+            { "aria-label": "Porsiyon", style: "width:auto" },
+            el(
+              "option",
+              { value: "tam" },
+              PORSIYON_ETIKET.tam + " · " + para(m.fiyat),
+            ),
+            el(
+              "option",
+              { value: "yarim" },
+              PORSIYON_ETIKET.yarim + " · " + para(m.yarim_fiyat),
+            ),
+          )
+        : null;
+
     const dugme = el(
       "button",
       {
         type: "button",
         sinif: "dugme dugme-kucuk",
         disabled: !m.yapilabilir,
-        onclick: () => rezerveEt(m, dugme),
+        onclick: () => rezerveEt(m, dugme, secim ? secim.value : "tam"),
       },
       m.yapilabilir ? "Rezervasyon yap" : m.pasiflik_nedeni,
     );
+
+    const yarimMi =
+      m.rezervasyon_durumu &&
+      m.rezervasyon_durumu !== "iptal" &&
+      m.rezervasyon_porsiyonu === "yarim";
 
     return el(
       "div",
@@ -95,25 +120,29 @@ async function basla() {
       el(
         "div",
         { sinif: "ogun-alt" },
-        el("span", { sinif: "fiyat" }, para(m.fiyat)),
+        secim ? null : el("span", { sinif: "fiyat" }, para(m.fiyat)),
+        secim,
         el("span", { sinif: "kucuk" }, "Boş: " + m.bos_yer),
         m.rezervasyon_durumu ? durumRozeti(m.rezervasyon_durumu) : null,
+        yarimMi ? el("span", { sinif: "rozet" }, PORSIYON_ETIKET.yarim) : null,
         dugme,
       ),
     );
   }
 
-  async function rezerveEt(menu, dugme) {
+  async function rezerveEt(menu, dugme, porsiyon) {
     dugme.disabled = true;
     bildirimiGizle(kutu);
     try {
       const sonuc = await api("/rezervasyon", {
         metod: "POST",
-        govde: { menu_id: menu.menu_id },
+        govde: { menu_id: menu.menu_id, porsiyon: porsiyon },
       });
       bildir(
         kutu,
-        "Rezervasyon yapıldı. Ücret: " +
+        "Rezervasyon yapıldı · " +
+          (PORSIYON_ETIKET[sonuc.porsiyon] || sonuc.porsiyon) +
+          " · Ücret: " +
           para(sonuc.ucret) +
           " · Yeni bakiyeniz: " +
           para(sonuc.bakiye),
